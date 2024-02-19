@@ -30,6 +30,8 @@ import struct
 import serial
 from serial.tools import list_ports
 
+# define an external Local Oscillator Offset (- for high side mixing)
+lo_offset = 5150
 #  For 3D
 import pyqtgraph.opengl as pyqtgl
 
@@ -627,7 +629,7 @@ class display:
         checkboxes.dwm.submit()
 
     def updateTrace(self, frequencies, readings):  # called by sigProcess() for every trace every 20 points
-        self.trace.setData((frequencies/1e6), readings)
+        self.trace.setData((lo_offset - frequencies/1e6), readings)
         if ui.grid.isChecked():
             tinySA.vGrid.show()
         else:
@@ -642,12 +644,12 @@ class display:
         options = {'Peak1': fPeaks[0]/1e6, 'Peak2': fPeaks[1]/1e6, 'Peak3': fPeaks[2]/1e6,
                    'Peak4': fPeaks[3]/1e6, 'Normal': self.vline.value(), 'Delta': self.vline.value()}
         markerF = options.get(self.markerType)
-        self.vline.setValue(markerF)
+        self.vline.setValue(lo_offset-markerF)
         if self.vline.value() * 1e6 < np.min(frequencies) or self.vline.value() * 1e6 > np.max(frequencies):
             self.vline.label.setText(f'{self.vline.name()}{self.markerType[:1]} {markerF:.3f}MHz')
         else:
             fIndex = np.argmin(np.abs(frequencies - (self.vline.value() * 1e6)))  # the closest value in frequencies[]
-            self.vline.setValue(frequencies[fIndex] / 1e6)  # set to the discrete value from frequencies[]
+            self.vline.setValue(lo_offset-frequencies[fIndex] / 1e6)  # set to the discrete value from frequencies[]
             dBm = readings[fIndex]
             if self.markerType == 'Delta':
                 self.vline.label.setText(f'{self.vline.name()}{self.markerType[:1]} {self.deltaF:.3f}MHz {dBm:.1f}dBm')
